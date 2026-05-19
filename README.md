@@ -6,7 +6,7 @@ output:
 # nextflow-ont-pacbio-demux
 
 
-[![Nextflow Workflow Tests](https://github.com/seqwell/nextflow-ont-pacbio-demux/actions/workflows/nextflow-ci.yml/badge.svg?branch=main)](https://github.com/seqwell/nextflow-ont-pacbio-demux/actions/workflows/nextflow-ci.yml?query=branch%3Amain)
+[![Nextflow Workflow Tests](https://github.com/seqwell/ONT-Pacbio-Demux/actions/workflows/nextflow-ci.yml/badge.svg?branch=main)](https://github.com/seqwell/ONT-Pacbio-Demux/actions/workflows/nextflow-ci.yml?query=branch%3Amain)
 [![Nextflow](https://img.shields.io/badge/Nextflow%20DSL2-%E2%89%A522.04.5-blue.svg)](https://www.nextflow.io/)
 
 
