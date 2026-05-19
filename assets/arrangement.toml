@@ -1,0 +1,33 @@
+[arrangement]
+name = "sw"
+kit = ""
+
+# i7: barcode LEFT of linker+ME (rear of read)
+# forward: [10bp][CCGAGCCCACGAGAC][AGATGTGTATAAGAGACAG]
+# reverse: [CTGTCTCTTATACACATCT][GTCTCGTGGGCTCGG][10bp]  ← RC of above, dorado handles this
+mask1_front = ""
+mask1_rear = "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG"
+              
+barcode1_pattern = "sw-BC%03i"
+
+# i5: barcode RIGHT of ME+linker (rear of read)
+# forward: [CTGTCTCTTATACACATCT][GACGCTGCCGACGA][10bp]
+# reverse: [10bp][TCGTCGGCAGCGTC][AGATGTGTATAAGAGACAG]  ← RC, dorado handles this
+mask2_front = ""
+mask2_rear = "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG"
+              
+barcode2_pattern = "sw-RC-BC%03i"
+
+first_index = 1
+last_index = 96
+rear_only_barcodes = false
+
+[scoring]
+max_barcode_penalty = 1
+min_barcode_penalty_dist = 1
+min_separation_only_dist = 1
+flank_left_pad = 0
+flank_right_pad = 0
+front_barcode_window = 175
+rear_barcode_window = 175
+midstrand_flank_score = 0.95

@@ -1,0 +1,19 @@
+# Nextflow
+work/
+.nextflow*
+
+# Outputs
+fastq_test_output/
+bam_test_output/
+ci_output/
+barcode/
+other/
+
+# Latch
+files_for_latch/
+
+# test files
+*.sh
+
+# Test data (large files)
+
