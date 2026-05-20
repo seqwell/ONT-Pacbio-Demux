@@ -63,7 +63,7 @@ workflow {
         COMBINE_BARCODES_BAM(DORADO_DEMUX.out.bam_dir.collect())
        // COMBINE_BARCODES_BAM.out.bam.view()
         bam_barcode_ch = COMBINE_BARCODES_BAM.out.bam
-                           .flatMap { bam -> bam instanceof List ? bam : [bam] }
+                           .flatMap { bam -> bam in List ? bam : [bam] }
                            .filter { bam -> bam.name.endsWith('.bam') }
                            .map { bam -> tuple(bam.baseName, bam) }
          bam_barcode_ch.view()
@@ -83,7 +83,7 @@ workflow {
         // e.g. "barcode001.seqWell.fastq.gz" → key "barcode001"
         // This must match bam_barcode_ch which is also keyed by "barcode001"
         base_trimmed_ch = CUTADAPT_TRIM.out.fq
-                          .flatMap { it -> it instanceof List ? it : [it] }
+                          .flatMap { it -> it in List ? it : [it] }
                           .filter { fq -> !fq.name.contains('tagged') && fq.size() > 20 }
 
         trimmed_ch = base_trimmed_ch
@@ -130,7 +130,7 @@ workflow {
         COMBINE_BARCODES(DORADO_DEMUX.out.fastq_dir.collect())
 
         fastq_barcode_ch = COMBINE_BARCODES.out.fastq
-                             .flatMap { it -> it instanceof List ? it : [it] }
+                             .flatMap { it -> it in List ? it : [it] }
                              .map { fq -> tuple(fq.baseName.replace(".fastq", ""), fq) }
 
         // -----------------------------------------------------------
@@ -145,7 +145,7 @@ workflow {
         CUTADAPT_TRIM(REHEADER_READS.out.fq)
 
         trimmed_ch = CUTADAPT_TRIM.out.fq
-                       .flatMap { it ->  it instanceof List ? it : [it] }
+                       .flatMap { it ->  it in List ? it : [it] }
                        .map { fq -> tuple(fq.baseName.replace(".fastq", ""), fq) }
 
         demuxed_ch = trimmed_ch
