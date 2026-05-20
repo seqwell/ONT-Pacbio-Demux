@@ -13,7 +13,7 @@ other/
 files_for_latch/
 
 # test files
-*.sh
+nextflow*.sh
 
 # Test data (large files)
 

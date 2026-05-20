@@ -1,4 +1,4 @@
-nextflow.enable.dsl = 2
+
 
 
 
@@ -61,12 +61,12 @@ workflow {
         // Step 2 (BAM): Combine per-sample BAM demux dirs → per-barcode BAMs
         // -----------------------------------------------------------
         COMBINE_BARCODES_BAM(DORADO_DEMUX.out.bam_dir.collect())
-
+       // COMBINE_BARCODES_BAM.out.bam.view()
         bam_barcode_ch = COMBINE_BARCODES_BAM.out.bam
-                           .flatMap { it -> it instanceof List ? it : [it] }
-                           .filter { it -> it.name.endsWith('.bam') }
+                           .flatMap { bam -> bam instanceof List ? bam : [bam] }
+                           .filter { bam -> bam.name.endsWith('.bam') }
                            .map { bam -> tuple(bam.baseName, bam) }
-
+         bam_barcode_ch.view()
         // -----------------------------------------------------------
         // Step 3 (BAM): Convert each per-barcode demuxed BAM → FASTQ
         //   This FASTQ is used as input to cutadapt.

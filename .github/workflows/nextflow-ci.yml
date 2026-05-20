@@ -24,8 +24,7 @@ jobs:
         curl -s https://get.nextflow.io | bash
         sudo mv nextflow /usr/local/bin
         nextflow -version
-      env:
-        NXF_VER: 25.10.4
+
 
     - name: Run Nextflow pipeline with test profile
       run: |
