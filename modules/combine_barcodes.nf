@@ -46,7 +46,6 @@ process COMBINE_BARCODES_BAM {
     output:
     path("output_bam/*"), emit: bam
 
-    container 'quay.io/biocontainers/samtools:1.19--h50ea8bc_0'
 
     script:
     """
