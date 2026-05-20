@@ -62,7 +62,7 @@ workflow {
         COMBINE_BARCODES_BAM(DORADO_DEMUX.out.bam_dir.collect())
 
         bam_barcode_ch = COMBINE_BARCODES_BAM.out.bam
-                           .flatMap { item -> item instanceof List ? item : [item] }
+                           .flatMap { it instanceof List ? it : [it] }
                            .filter { it.name.endsWith('.bam') }
                            .map { bam -> tuple(bam.baseName, bam) }
 
