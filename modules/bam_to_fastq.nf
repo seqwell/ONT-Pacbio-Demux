@@ -16,7 +16,6 @@ process BAM_TO_FASTQ {
     output:
     tuple val(sample_id), path("${sample_id}.fastq.gz"), emit: fastq
 
-    container 'quay.io/biocontainers/samtools:1.19--h50ea8bc_0'
 
     script:
     """
