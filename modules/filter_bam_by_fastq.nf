@@ -1,7 +1,7 @@
 process FILTER_BAM_BY_FASTQ {
     tag "$sample_id"
     publishDir path: "${params.outdir}/demuxed_bam_flat/",        mode: 'copy', pattern: "*seqWell*.bam"
-    publishDir path: "${params.outdir}/demuxed_bam/${sample_id}/", mode: 'copy', pattern: "*seqWell*.bam"
+    publishDir path: { "${params.outdir}/demuxed_bam/${sample_id}/" }, mode: 'copy', pattern: "*seqWell*.bam"
     publishDir path: "${params.outdir}/other/ME_tagged_bam/",     mode: 'copy', pattern: "*tagged.bam"
     publishDir path: "${params.outdir}/demuxed_bam/",             mode: 'copy', pattern: "unknown.bam"
 
