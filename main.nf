@@ -4,7 +4,7 @@
 
 include { DORADO_DEMUX         } from './modules/dorado_demux.nf'
 include { COMBINE_BARCODES     } from './modules/combine_barcodes.nf'
-include { COMBINE_BARCODES_BAM } from './modules/combine_barcodes.nf'
+include { COMBINE_BARCODES_BAM } from './modules/combine_barcodes_bam.nf'
 include { BAM_TO_FASTQ         } from './modules/bam_to_fastq.nf'
 include { EXTRACT_HEADER       } from './modules/extract_header.nf'
 include { REHEADER_READS       } from './modules/reheader_reads.nf'
