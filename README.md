@@ -62,7 +62,7 @@ The pipeline splits into two branches after the input type is determined:
 
 ### BAM Input Steps
 
-1. **DORADO_DEMUX** (BAM mode): Demultiplexes input BAMs using Dorado with custom 96 PacBio barcode sequences. Emits per-sample BAM directories (no FASTQ).
+1. **DORADO_DEMUX** (BAM mode): Demultiplexes input BAMs using Dorado with custom 96 seqWell Longplex barcode set 1 sequences. Emits per-sample BAM directories (no FASTQ).
 
 2. **COMBINE_BARCODES_BAM**: Merges per-barcode BAM files from multiple demux directories into one BAM per barcode.
 
@@ -70,7 +70,7 @@ The pipeline splits into two branches after the input type is determined:
 
 4. **CUTADAPT_TRIM**: Two-step adapter trimming on the converted FASTQ:
    - Step 1: Trims ME (Mosaic End) adapters from the 5′ end and filters by minimum read length.
-   - Step 2: Detects any remaining ME sequence anywhere in the read; reads with ME are written to `.ME.tagged.fastq.gz` (removed from final output), clean reads to `.pacbio.fastq.gz`.
+   - Step 2: Detects any remaining ME sequence anywhere in the read; reads with ME are written to `.ME.tagged.fastq.gz` (removed from final output), clean reads to `.seqWell.fastq.gz`.
 
 5. **FILTER_BAM_BY_FASTQ**: Subsets the demux BAM to retain only reads whose names appear in the trimmed FASTQ. This propagates cutadapt adapter/length/ME-tag filtering back onto the BAM. Keys are matched on bare barcode ID (e.g. `barcode001`).
 
@@ -78,7 +78,7 @@ The pipeline splits into two branches after the input type is determined:
 
 1. **EXTRACT_HEADER**: Extracts FASTQ header fields (`runid`, `ch`, `start_time`, `basecall_model_version_id`, etc.) using awk **before** demultiplexing. Writes a UUID-keyed TSV lookup used by REHEADER_READS to restore original headers after demux.
 
-2. **DORADO_DEMUX** (FASTQ mode): Demultiplexes input FASTQs using Dorado with custom 96 PacBio barcode sequences. Emits per-sample FASTQ directories (`--emit-fastq`).
+2. **DORADO_DEMUX** (FASTQ mode): Demultiplexes input FASTQs using Dorado with custom 96 seqWell Longplex barcode set 1 sequences. Emits per-sample FASTQ directories (`--emit-fastq`).
 
 3. **COMBINE_BARCODES**: Merges per-barcode FASTQ files from multiple demux directories into one FASTQ per barcode.
 
@@ -97,7 +97,7 @@ The pipeline splits into two branches after the input type is determined:
 9. **MULTIQC**: Aggregates NanoStat results into a single interactive HTML report.
 
 
-<img src="assets/dorado_ont_workflow.png" alt="96-well PacBio Dorado demux ONT data Workflow" width="70%">
+<img src="assets/dorado_ont_workflow.png" alt="96-well ONT PacBio Dorado demux Workflow" width="70%">
 
 
 ## Dependencies
@@ -111,7 +111,7 @@ The pipeline splits into two branches after the input type is determined:
 |---|---|
 | DORADO_DEMUX | `genomicpariscentre/dorado:1.1.1` |
 | COMBINE_BARCODES | `ubuntu:20.04` |
-| COMBINE_BARCODES_BAM | `ubuntu:20.04` |
+| COMBINE_BARCODES_BAM | `quay.io/biocontainers/samtools:1.21--h50ea8bc_0` |
 | EXTRACT_HEADER | `quay.io/biocontainers/pysam:0.22.0--py39hcada746_0` |
 | REHEADER_READS | `seqwell/python:v2.0` |
 | CUTADAPT_TRIM | `quay.io/biocontainers/cutadapt:5.0--py310h1fe012e_0` |
@@ -205,7 +205,7 @@ nextflow run main.nf \
 
 **BAM input:**
 ```bash
-nextflow run main.nf \
+/software/nextflow-align/nextflow run main.nf \
     --data_type bam \
     --input "${PWD}/test_data/bam_pass/" \
     --outdir "${PWD}/bam_test_output" \
