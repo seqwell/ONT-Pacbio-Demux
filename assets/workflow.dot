@@ -1,0 +1,88 @@
+digraph workflow {
+  rankdir=TB
+  splines=ortho
+  nodesep=1.2
+  ranksep=0.7
+  node [fontname="Arial", fontsize=12, shape=rectangle, style="rounded,filled", fillcolor="#F5F5F5"]
+
+  // ── Inputs ──────────────────────────────────────────────
+  INPUT_FASTQ    [label="FASTQ Input",      shape=note, fillcolor="#90EE90"]
+  INPUT_BAM      [label="BAM Input",        shape=note, fillcolor="#90EE90"]
+
+  // ── Shared config inputs ─────────────────────────────────
+  BARCODES       [label="Barcode FASTA",    shape=note, fillcolor="#D0D0D0"]
+  ARRANGEMENT    [label="Arrangement TOML", shape=note, fillcolor="#D0D0D0"]
+
+  // ── FASTQ branch ─────────────────────────────────────────
+  CHECK_ME_FASTQ       [label="CHECK_ME_BBDUK"]
+  NANOFILT_FASTQ       [label="NANOFILT"]
+  EXTRACT_HEADER       [label="EXTRACT_HEADER"]
+  DORADO_FASTQ         [label="DORADO_DEMUX (emit-fastq)"]
+  COMBINE_FASTQ        [label="COMBINE_BARCODES"]
+  REHEADER             [label="REHEADER_READS"]
+  CUTADAPT_FASTQ       [label="CUTADAPT_TRIM"]
+
+  // ── BAM branch ───────────────────────────────────────────
+  BAM_TO_FASTQ_BBDUK   [label="BAM_TO_FASTQ\n(for ME check)"]
+  CHECK_ME_BAM         [label="CHECK_ME_BBDUK"]
+  FILTER_BAM_BBDUK     [label="FILTER_BAM_BY_FASTQ\n(retain ME-matched reads)"]
+  NANOFILT_BAM         [label="NANOFILT"]
+  DORADO_BAM           [label="DORADO_DEMUX (no-emit-fastq)"]
+  COMBINE_BAM          [label="COMBINE_BARCODES_BAM"]
+  BAM_TO_FASTQ         [label="BAM_TO_FASTQ"]
+  CUTADAPT_BAM         [label="CUTADAPT_TRIM"]
+  FILTER_BAM           [label="FILTER_BAM_BY_FASTQ"]
+
+  // ── Shared output + QC ───────────────────────────────────
+  TRIMMED_FQ      [label="Trimmed FASTQ",  shape=note, fillcolor="#ADD8E6"]
+  DEMUX_SUMMARIZE [label="DEMUX_SUMMARIZE"]
+  READ_LENGTH     [label="READ_LENGTH"]
+  NANOSTAT        [label="NANOSTAT"]
+  MULTIQC         [label="MULTIQC"]
+
+  // ── Rank groupings ───────────────────────────────────────
+  { rank=same; INPUT_FASTQ;      INPUT_BAM }
+  { rank=same; CHECK_ME_FASTQ;   BAM_TO_FASTQ_BBDUK }
+  { rank=same; NANOFILT_FASTQ;   CHECK_ME_BAM }
+  { rank=same; EXTRACT_HEADER;   FILTER_BAM_BBDUK }
+  { rank=same; BARCODES; ARRANGEMENT }
+  { rank=same; DORADO_FASTQ;     NANOFILT_BAM }
+  { rank=same; COMBINE_FASTQ;    DORADO_BAM }
+  { rank=same; REHEADER;         COMBINE_BAM }
+  { rank=same; CUTADAPT_FASTQ;   BAM_TO_FASTQ }
+  { rank=same; CUTADAPT_BAM }
+  { rank=same; FILTER_BAM }
+  { rank=same; DEMUX_SUMMARIZE; READ_LENGTH; NANOSTAT; MULTIQC }
+
+  // ── FASTQ branch edges ───────────────────────────────────
+  INPUT_FASTQ        -> CHECK_ME_FASTQ
+  CHECK_ME_FASTQ     -> NANOFILT_FASTQ
+  NANOFILT_FASTQ     -> EXTRACT_HEADER
+  EXTRACT_HEADER     -> DORADO_FASTQ
+  BARCODES           -> DORADO_FASTQ
+  ARRANGEMENT        -> DORADO_FASTQ
+  DORADO_FASTQ       -> COMBINE_FASTQ
+  COMBINE_FASTQ      -> REHEADER
+  REHEADER           -> CUTADAPT_FASTQ
+  CUTADAPT_FASTQ     -> TRIMMED_FQ
+
+  // ── BAM branch edges ─────────────────────────────────────
+  INPUT_BAM          -> BAM_TO_FASTQ_BBDUK
+  BAM_TO_FASTQ_BBDUK -> CHECK_ME_BAM
+  CHECK_ME_BAM       -> FILTER_BAM_BBDUK
+  FILTER_BAM_BBDUK   -> NANOFILT_BAM
+  NANOFILT_BAM       -> DORADO_BAM
+  BARCODES           -> DORADO_BAM
+  ARRANGEMENT        -> DORADO_BAM
+  DORADO_BAM         -> COMBINE_BAM
+  COMBINE_BAM        -> BAM_TO_FASTQ
+  BAM_TO_FASTQ       -> CUTADAPT_BAM
+  CUTADAPT_BAM       -> FILTER_BAM
+  FILTER_BAM         -> TRIMMED_FQ
+
+  // ── Shared QC edges ──────────────────────────────────────
+  TRIMMED_FQ -> DEMUX_SUMMARIZE
+  TRIMMED_FQ -> READ_LENGTH
+  TRIMMED_FQ -> NANOSTAT
+  NANOSTAT   -> MULTIQC
+}

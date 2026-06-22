@@ -17,3 +17,8 @@ nextflow*.sh
 
 # Test data (large files)
 
+#other
+README.md_old
+main.nf_old
+create_flow.txt
+

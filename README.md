@@ -7,7 +7,7 @@ output:
 
 
 [![Nextflow Workflow Tests](https://github.com/seqwell/ONT-Pacbio-Demux/actions/workflows/nextflow-ci.yml/badge.svg?branch=main)](https://github.com/seqwell/ONT-Pacbio-Demux/actions/workflows/nextflow-ci.yml?query=branch%3Amain)
-[![Nextflow](https://img.shields.io/badge/Nextflow%20DSL2-%E2%89%A522.04.5-blue.svg)](https://www.nextflow.io/)
+[![Nextflow](https://img.shields.io/badge/Nextflow_DSL2-%3E%3D22.04.5%20%26%20%3C%3D25.10.4-blue.svg)](https://www.nextflow.io/)
 
 
 
@@ -21,7 +21,16 @@ The pipeline splits into two branches after the input type is determined:
                         ┌─────────────────────────────────────────────┐
                         │              BAM INPUT BRANCH               │
                         │                                             │
-  *.bam files ─────────→ DORADO_DEMUX (--no-emit-fastq)               │
+  *.bam files ─────────→ BAM_TO_FASTQ  (for ME check)                 │
+                        │        ↓                                    │
+                        │ CHECK_ME_BBDUK  (ME adapter filter)         │
+                        │        ↓                                    │
+                        │ FILTER_BAM_BY_FASTQ  (retain ME-matched     │
+                        │   read IDs in raw BAM)                      │
+                        │        ↓                                    │
+                        │  NANOFILT  (quality filter ME-matched reads) │
+                        │        ↓                                    │
+                        │ DORADO_DEMUX (--no-emit-fastq)              │
                         │        ↓                                    │
                         │ COMBINE_BARCODES_BAM                        │
                         │        ↓                                    │
@@ -38,7 +47,11 @@ The pipeline splits into two branches after the input type is determined:
                         ┌─────────────────────────────────────────────┐
                         │             FASTQ INPUT BRANCH              │
                         │                                             │
-  *.fastq.gz files ────→ EXTRACT_HEADER  (awk → uuid_tags.tsv)        │
+  *.fastq.gz files ────→ CHECK_ME_BBDUK  (ME adapter filter)          │
+                        │        ↓                                    │
+                        │  NANOFILT  (quality filter ME-matched reads) │
+                        │        ↓                                    │
+                        │  EXTRACT_HEADER  (awk → uuid_tags.tsv)      │
                         │        ↓                                    │
                         │  DORADO_DEMUX (--emit-fastq)                │
                         │        ↓                                    │
@@ -62,39 +75,49 @@ The pipeline splits into two branches after the input type is determined:
 
 ### BAM Input Steps
 
-1. **DORADO_DEMUX** (BAM mode): Demultiplexes input BAMs using Dorado with custom 96 seqWell Longplex barcode set 1 sequences. Emits per-sample BAM directories (no FASTQ).
+1. **ME Adapter Pre-filter (BAM)**:
+   - **BAM_TO_FASTQ** (for bbduk): Converts the raw input BAM to FASTQ so reads can be scanned for ME adapter presence.
+   - **CHECK_ME_BBDUK**: Runs BBDuk on the raw FASTQ to identify reads containing the ME (Mosaic End) adapter. Only matched reads are carried forward.
+   - **FILTER_BAM_BY_FASTQ** (for bbduk): Filters the raw input BAM to retain only the read IDs that matched the ME adapter check.
+   - **NANOFILT**: Quality-filters the ME-matched BAM. The output of NANOFILT is the input to all downstream steps.
 
-2. **COMBINE_BARCODES_BAM**: Merges per-barcode BAM files from multiple demux directories into one BAM per barcode.
+2. **DORADO_DEMUX** (BAM mode): Demultiplexes the ME-filtered input BAM using Dorado with custom 96 seqWell Longplex barcode set 1 sequences. Emits per-sample BAM directories (no FASTQ).
 
-3. **BAM_TO_FASTQ**: Converts each per-barcode demuxed BAM to FASTQ using samtools. This FASTQ is used as input to Cutadapt. No header extraction step is needed for BAM input.
+3. **COMBINE_BARCODES_BAM**: Merges per-barcode BAM files from multiple demux directories into one BAM per barcode.
 
-4. **CUTADAPT_TRIM**: Two-step adapter trimming on the converted FASTQ:
+4. **BAM_TO_FASTQ**: Converts each per-barcode demuxed BAM to FASTQ using samtools. This FASTQ is used as input to Cutadapt. No header extraction step is needed for BAM input.
+
+5. **CUTADAPT_TRIM**: Two-step adapter trimming on the converted FASTQ:
    - Step 1: Trims ME (Mosaic End) adapters from the 5′ end and filters by minimum read length.
    - Step 2: Detects any remaining ME sequence anywhere in the read; reads with ME are written to `.ME.tagged.fastq.gz` (removed from final output), clean reads to `.seqWell.fastq.gz`.
 
-5. **FILTER_BAM_BY_FASTQ**: Subsets the demux BAM to retain only reads whose names appear in the trimmed FASTQ. This propagates cutadapt adapter/length/ME-tag filtering back onto the BAM. Keys are matched on bare barcode ID (e.g. `barcode001`).
+6. **FILTER_BAM_BY_FASTQ**: Subsets the demux BAM to retain only reads whose names appear in the trimmed FASTQ. This propagates cutadapt adapter/length/ME-tag filtering back onto the BAM. Keys are matched on bare barcode ID (e.g. `barcode001`).
 
 ### FASTQ Input Steps
 
-1. **EXTRACT_HEADER**: Extracts FASTQ header fields (`runid`, `ch`, `start_time`, `basecall_model_version_id`, etc.) using awk **before** demultiplexing. Writes a UUID-keyed TSV lookup used by REHEADER_READS to restore original headers after demux.
+1. **ME Adapter Pre-filter (FASTQ)**:
+   - **CHECK_ME_BBDUK**: Runs BBDuk on the raw input FASTQ to identify reads containing the ME (Mosaic End) adapter. Only matched reads are carried forward.
+   - **NANOFILT**: Quality-filters the ME-matched reads. The output of NANOFILT is the input to all downstream steps.
 
-2. **DORADO_DEMUX** (FASTQ mode): Demultiplexes input FASTQs using Dorado with custom 96 seqWell Longplex barcode set 1 sequences. Emits per-sample FASTQ directories (`--emit-fastq`).
+2. **EXTRACT_HEADER**: Extracts FASTQ header fields (`runid`, `ch`, `start_time`, `basecall_model_version_id`, etc.) using awk **before** demultiplexing. Writes a UUID-keyed TSV lookup used by REHEADER_READS to restore original headers after demux.
 
-3. **COMBINE_BARCODES**: Merges per-barcode FASTQ files from multiple demux directories into one FASTQ per barcode.
+3. **DORADO_DEMUX** (FASTQ mode): Demultiplexes the ME-filtered, quality-filtered input FASTQs using Dorado with custom 96 seqWell Longplex barcode set 1 sequences. Emits per-sample FASTQ directories (`--emit-fastq`).
 
-4. **REHEADER_READS**: Restores original ONT read header metadata to each per-barcode FASTQ by joining on read UUID against the TSV from EXTRACT_HEADER.
+4. **COMBINE_BARCODES**: Merges per-barcode FASTQ files from multiple demux directories into one FASTQ per barcode.
 
-5. **CUTADAPT_TRIM**: Two-step adapter trimming on the reheadered FASTQ (same logic as BAM branch). No BAM files are created for FASTQ input.
+5. **REHEADER_READS**: Restores original ONT read header metadata to each per-barcode FASTQ by joining on read UUID against the TSV from EXTRACT_HEADER.
+
+6. **CUTADAPT_TRIM**: Two-step adapter trimming on the reheadered FASTQ (same logic as BAM branch). No BAM files are created for FASTQ input.
 
 ### Shared Downstream QC (Both Branches)
 
-6. **DEMUX_SUMMARIZE**: Generates a per-barcode read count summary CSV from the trimmed FASTQs. Only barcodes matching `barcode*` or `unknown` are passed forward.
+7. **DEMUX_SUMMARIZE**: Generates a per-barcode read count summary CSV from the trimmed FASTQs. Only barcodes matching `barcode*` or `unknown` are passed forward.
 
-7. **READ_LENGTH**: Calculates and plots read length distributions per barcode.
+8. **READ_LENGTH**: Calculates and plots read length distributions per barcode.
 
-8. **NANOSTAT**: Produces detailed per-sample sequencing statistics.
+9. **NANOSTAT**: Produces detailed per-sample sequencing statistics.
 
-9. **MULTIQC**: Aggregates NanoStat results into a single interactive HTML report.
+10. **MULTIQC**: Aggregates NanoStat results into a single interactive HTML report.
 
 
 <img src="assets/dorado_ont_workflow.png" alt="96-well ONT PacBio Dorado demux Workflow" width="70%">
@@ -109,6 +132,7 @@ The pipeline splits into two branches after the input type is determined:
 
 | Process | Container |
 |---|---|
+| CHECK_ME_BBDUK | `quay.io/biocontainers/bbtools:39.01--h5c4e2a8_1` |
 | DORADO_DEMUX | `genomicpariscentre/dorado:1.1.1` |
 | COMBINE_BARCODES | `ubuntu:20.04` |
 | COMBINE_BARCODES_BAM | `quay.io/biocontainers/samtools:1.21--h50ea8bc_0` |
@@ -117,6 +141,7 @@ The pipeline splits into two branches after the input type is determined:
 | CUTADAPT_TRIM | `quay.io/biocontainers/cutadapt:5.0--py310h1fe012e_0` |
 | BAM_TO_FASTQ | `quay.io/biocontainers/samtools:1.21--h50ea8bc_0` |
 | FILTER_BAM_BY_FASTQ | `quay.io/biocontainers/samtools:1.21--h50ea8bc_0` |
+| NANOFILT | `quay.io/biocontainers/nanofilt:2.8.0--py_0` |
 | DEMUX_SUMMARIZE | `ubuntu:20.04` |
 | READ_LENGTH | `seqwell/python:v2.0` |
 | NANOSTAT | `quay.io/biocontainers/nanostat:1.6.0--pyhdfd78af_0` |
@@ -205,7 +230,7 @@ nextflow run main.nf \
 
 **BAM input:**
 ```bash
-/software/nextflow-align/nextflow run main.nf \
+nextflow run main.nf \
     --data_type bam \
     --input "${PWD}/test_data/bam_pass/" \
     --outdir "${PWD}/bam_test_output" \
@@ -265,7 +290,8 @@ output_directory/
 
 ## Notes on BAM vs FASTQ Mode
 
-- **BAM input** demuxes directly as BAM, converts to FASTQ for Cutadapt trimming, then filters the original demux BAM by the read IDs that survive trimming. This keeps the final BAM consistent with the FASTQ output — reads removed by Cutadapt (too short, ME-tagged) are also removed from the BAM.
-- **FASTQ input** extracts read headers *before* demuxing so that original ONT metadata tags can be restored after Dorado reassigns them during demux. No BAM files are produced in this mode.
+- **Both modes** begin with a BBDuk-based ME adapter pre-filter (Step 0). Only reads containing the ME (Mosaic End) adapter are retained for downstream processing, ensuring that non-library reads are excluded before demultiplexing.
+- **BAM input** converts the raw BAM to FASTQ for ME checking, then filters the raw BAM by the matched read IDs, and passes the result through NANOFILT quality filtering before handing off to Dorado. After demux, reads are converted back to FASTQ for Cutadapt trimming, then the demux BAM is filtered again by the trimmed read IDs. This keeps the final BAM consistent with the FASTQ output — reads removed by Cutadapt (too short, ME-tagged) are also removed from the BAM.
+- **FASTQ input** runs ME checking and NANOFILT quality filtering before demux. Read headers are extracted from the ME/quality-filtered FASTQ *before* demuxing so that original ONT metadata tags can be restored after Dorado reassigns them during demux. No BAM files are produced in this mode.
 - The FASTQ-internal processing approach (converting BAM→FASTQ before Cutadapt) avoids reliance on Cutadapt's unreliable BAM support for unaligned ONT reads.
 - Barcode ID matching throughout the pipeline is keyed on the bare barcode label (e.g. `barcode001`), stripped of any filename suffixes, to ensure consistent joins between modules.
