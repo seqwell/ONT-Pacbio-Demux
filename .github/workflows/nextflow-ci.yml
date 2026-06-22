@@ -20,6 +20,8 @@ jobs:
         java-version: '21'
 
     - name: Install Nextflow
+      env:
+        NXF_VER: '24.04.4'
       run: |
         curl -s https://get.nextflow.io | bash
         sudo mv nextflow /usr/local/bin
