@@ -5,7 +5,8 @@ process NANOFILT {
 
   output:
     tuple  val(pair_id), path('*.fastq.gz') 
-
+    
+     script:
      """
      gunzip -c $fq | NanoFilt -q 12   | gzip > ${pair_id}.filtered.fastq.gz
      """
