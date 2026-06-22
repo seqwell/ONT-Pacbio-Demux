@@ -4,7 +4,6 @@ process CHECK_ME_BBDUK {
 
     publishDir "${params.outdir}/check_me/${sample_id}", mode: 'copy'
 
-    container 'staphb/bbtools:latest'
 
     input:
     tuple val(sample_id), path(fastq)
