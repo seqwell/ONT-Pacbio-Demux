@@ -2,7 +2,7 @@ process CHECK_ME_BBDUK {
 
     tag "${sample_id}"
 
-    publishDir "${params.outdir}/check_me/${sample_id}", mode: 'copy'
+    publishDir "{ ${params.outdir}/check_me/${sample_id} }", mode: 'copy'
 
 
     input:
