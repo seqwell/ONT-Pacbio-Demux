@@ -38,7 +38,7 @@ workflow {
     if (use_bam) {
         log.info "data_type=bam  →  BAM input: BAM-to-FASTQ → ME filter → filter raw BAM → dorado demux (BAM) → BAM-to-FASTQ → cutadapt → filter demux-BAM by cutadapt-FASTQ read IDs"
 
-        raw_bam_ch = Channel.fromPath(params.input + "/*.bam")
+        raw_bam_ch = channel.fromPath(params.input + "/*.bam")
                        .map { it -> tuple(it.baseName, it) }
 
         // -----------------------------------------------------------
@@ -71,7 +71,7 @@ workflow {
     } else {
         log.info "data_type=fastq  →  FASTQ input: ME filter → nanofilt → extract headers → dorado demux → reheader → cutadapt → FASTQ output only (no BAM created)"
 
-        raw_fastq_ch = Channel.fromPath(params.input + "/*.fastq.gz")
+        raw_fastq_ch = channel.fromPath(params.input + "/*.fastq.gz")
                          .map { it -> tuple(it.baseName.replace(".fastq", ""), it) }
 
         // -----------------------------------------------------------
@@ -105,7 +105,7 @@ workflow {
         COMBINE_BARCODES_BAM(DORADO_DEMUX.out.bam_dir.collect())
 
         bam_barcode_ch = COMBINE_BARCODES_BAM.out.bam
-                           .flatMap { bam -> bam in List ? bam : [bam] }
+                           .flatMap { bam -> ( bam in List ) ? bam : [bam] }
                            .filter { bam -> bam.name.endsWith('.bam') }
                            .map { bam -> tuple(bam.baseName, bam) }
         bam_barcode_ch.view()
@@ -121,7 +121,7 @@ workflow {
         CUTADAPT_TRIM(BAM_TO_FASTQ.out.fastq)
 
         base_trimmed_ch = CUTADAPT_TRIM.out.fq
-                          .flatMap { it -> it in List ? it : [it] }
+                          .flatMap { it -> ( it in List ) ? it : [it] }
                           .filter { fq -> !fq.name.contains('tagged') && fq.size() > 20 }
 
         trimmed_ch = base_trimmed_ch
@@ -156,7 +156,7 @@ workflow {
         COMBINE_BARCODES(DORADO_DEMUX.out.fastq_dir.collect())
 
         fastq_barcode_ch = COMBINE_BARCODES.out.fastq
-                             .flatMap { it -> it in List ? it : [it] }
+                             .flatMap { it -> ( it in List ) ? it : [it] }
                              .map { fq -> tuple(fq.baseName.replace(".fastq", ""), fq) }
 
         // -----------------------------------------------------------
@@ -170,7 +170,7 @@ workflow {
         CUTADAPT_TRIM(REHEADER_READS.out.fq)
 
         trimmed_ch = CUTADAPT_TRIM.out.fq
-                       .flatMap { it ->  it in List ? it : [it] }
+                       .flatMap { it ->  ( it in List ) ? it : [it] }
                        .map { fq -> tuple(fq.baseName.replace(".fastq", ""), fq) }
 
         demuxed_ch = trimmed_ch
